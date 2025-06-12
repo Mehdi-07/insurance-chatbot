@@ -1,0 +1,10 @@
+# .coveragerc
+[run]
+# Directs coverage.py to store its data file in /tmp, which is always writable
+data_file = /tmp/.coverage
+
+[report]
+# You can customize reporting options here, e.g., to omit specific files from coverage reports
+# omit =
+#   */migrations/*
+#   */venv/*
