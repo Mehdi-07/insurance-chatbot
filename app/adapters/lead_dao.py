@@ -1,37 +1,37 @@
 # app/adapters/lead_dao.py
-import sqlite3
+
 import os
-import logging
-from flask import Flask, current_app # Import current_app for accessing app context within _init
+import sqlite3
+from flask import Flask
+from loguru import logger # Using loguru for consistency
 
-logger = logging.getLogger(__name__)
-
-def init_db(app_or_path: Flask | str):
+def init_db(app: Flask):
     """
-    Initializes the SQLite database and creates the 'leads' table if it doesn't exist.
-    Can be called with a Flask app instance (for app context) or a direct path.
+    Initializes the SQLite database.
+    - For production/development, it creates a database file.
+    - For testing, it uses a temporary in-memory database.
     """
-    if isinstance(app_or_path, Flask):
-        app = app_or_path
-    # Prefer DB_PATH from config, fallback to instance_path/leads.db
-        db_path = app.config.get("DB_PATH")
-        logger.info(f"DB init: Using Flask app context. DB path: {db_path}")
-    else:  # It's a string path, likely for testing or direct script
-        db_path = app_or_path
-        logger.info(f"DB init: Using direct path. DB path: {db_path}")
+    # Get the database path from the app's configuration
+    db_path = app.config["DB_PATH"]
+    logger.info(f"DB init: Using database path: {db_path}")
 
-    db_folder = os.path.dirname(db_path)
-    if not os.path.exists(db_folder):
+    # --- THIS IS THE KEY FIX ---
+    # Only create directories if the database path is a file, NOT in-memory.
+    # The special string ":memory:" tells sqlite3 to use RAM instead of a file.
+    if db_path != ":memory:":
+        db_folder = os.path.dirname(db_path)
         os.makedirs(db_folder, exist_ok=True)
+    # --- END FIX ---
 
     try:
+        # This connect call works for both file paths and ":memory:"
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS leads (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
-                email TEXT UNIQUE, -- Email is unique, but can be NULL
+                email TEXT UNIQUE,
                 zip TEXT,
                 phone TEXT,
                 quote_type TEXT,
@@ -41,15 +41,8 @@ def init_db(app_or_path: Flask | str):
         ''')
         conn.commit()
         conn.close()
-        logger.info(f"Database 'leads.db' initialized or already exists at {db_path}.")
+        logger.info("Database initialized successfully.")
     except sqlite3.Error as e:
         logger.error(f"Error initializing database at {db_path}: {e}")
-        raise # Re-raise to ensure calling function knows there's a problem
 
-# You would add functions here for saving/retrieving leads, e.g.:
-# def save_lead(lead_data: dict):
-#     # ... connect to db, insert data ...
-#     pass
-# def get_all_leads():
-#     # ... connect to db, select data ...
-#     pass
+# You can add your other database functions (like save_lead) below this line

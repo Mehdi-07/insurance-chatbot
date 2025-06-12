@@ -8,37 +8,40 @@ from loguru import logger # Ensure logger is imported here
 from .routes import bp as routes_bp
 from .extensions import configure_logging, init_db
 
-def create_app(test_config: dict | None = None) -> Flask:
-    # Load environment variables early in the app lifecycle
+import os
+from flask import Flask, jsonify
+from dotenv import load_dotenv
+from loguru import logger
+from .extensions import configure_logging, init_db
+from .routes import bp as routes_bp # Assuming your blueprint is named 'bp' in routes.py
+
+def create_app(test_config=None):
     load_dotenv()
+    app = Flask(__name__, instance_relative_config=True)
 
-    app = Flask(__name__)
+    # --- 1. Set Default Configuration ---
+    app.config.from_mapping(
+        SECRET_KEY=os.getenv('SECRET_KEY', 'dev'),
+        # Set the default database path for production/development
+        DB_PATH=os.path.join(app.instance_path, 'leads.db')
+    )
 
-    app.config.setdefault("DB_PATH", os.path.join(app.instance_path, "leads.db"))
-
-    # Apply configuration (e.g., from a config file or test_config)
     if test_config:
         app.config.update(test_config)
 
-    # Configure logging for the application using Loguru
+    # --- 2. Override Database for Testing (CRITICAL FIX) ---
+    if app.config.get("TESTING"):
+        # For tests, set the DB_PATH to the special in-memory string
+        app.config["DB_PATH"] = ":memory:"
+
+    # --- 3. Initialize App ---
     configure_logging(app)
-
-    # Initialize the database (creates leads.db if it doesn't exist)
-    init_db(app)
-
-    # Register blueprints to organize routes
+    init_db(app) # This will now use the correct DB_PATH
     app.register_blueprint(routes_bp)
 
-    # Global error handler for all unhandled exceptions
     @app.errorhandler(Exception)
     def global_handler(e):
-        """
-        Global error handler for all unhandled exceptions in the application.
-        Logs the exception and returns a generic internal server error response.
-        """
-        # Log the exception with traceback using loguru's logger
         logger.exception(f"Unhandled exception caught by global handler: {e}")
-        # Return a generic JSON error response to the client
         return jsonify({"error": "internal server error"}), 500
 
     return app
