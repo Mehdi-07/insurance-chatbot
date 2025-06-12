@@ -6,9 +6,10 @@ from loguru import logger # This is the loguru logger object
 
 # --- Loguru Global Configuration ---
 # Configure Loguru to write to a file and manage it.
-# This line sets up the primary logging destination for your application.
-logger.add("logs/app.log", rotation="1 MB", enqueue=True, level="INFO")
-logger.info("Loguru configured for file logging to 'logs/app.log'.")
+# Only configure file logging if NOT in testing mode
+if os.getenv("TESTING") != "True":
+    os.makedirs("logs", exist_ok=True)  # Ensure the logs directory exists
+    logger.add("logs/app.log", rotation="1 MB", enqueue=True, level="INFO")
 # --- End Loguru Global Configuration ---
 
 
