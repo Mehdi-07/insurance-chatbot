@@ -14,7 +14,7 @@ def init_db(app_or_path: Flask | str):
     if isinstance(app_or_path, Flask):
         app = app_or_path
     # Prefer DB_PATH from config, fallback to instance_path/leads.db
-        db_path = app.config.get("DB_PATH") or os.path.join(app.instance_path, 'leads.db')
+        db_path = app.config.get["DB_PATH"]
         logger.info(f"DB init: Using Flask app context. DB path: {db_path}")
     else:  # It's a string path, likely for testing or direct script
         db_path = app_or_path
