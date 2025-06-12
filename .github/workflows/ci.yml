@@ -45,6 +45,12 @@ jobs:
           file: ./Dockerfile
           #cache-from: type=gha
           #cache-to: type=gha,mode=max
+      
+      - name: Check if /app/instance exists in container
+        run: |
+            docker run --rm \
+              ${{ steps.meta.outputs.IMAGE_NAME }}:master-latest \
+              /bin/sh -c "if [ -d /app/instance ]; then echo '/app/instance exists'; else echo '/app/instance does NOT exist'; fi && ls -l /app"   
 
       - name: Run Pytest with Coverage
         run: |
