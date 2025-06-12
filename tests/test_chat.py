@@ -19,7 +19,10 @@ def test_chat_valid_message_success():
         mock_generate_reply.return_value = "Mocked GPT reply for valid message."
 
         # Create a test client from the Flask app
-        client = create_app({"TESTING": True}).test_client()
+        client = create_app({
+            "TESTING": True,
+            "DB_PATH": "/tmp/leads.db"
+        }).test_client()
 
         # Send a POST request with valid JSON data
         response = client.post(

@@ -8,7 +8,10 @@ def test_health_endpoint(): # <--- ENSURE THIS FUNCTION STARTS WITH 'test_'
     """
     # Create a test Flask application instance
     # Set TESTING to True to disable error catching during tests
-    client = create_app({"TESTING": True}).test_client()
+    client = create_app({
+        "TESTING": True,
+        "DB_PATH": "/tmp/leads.db"
+    }).test_client()
 
     # Make a GET request to the /healthz endpoint
     res = client.get("/healthz")

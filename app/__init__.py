@@ -14,6 +14,8 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     app = Flask(__name__)
 
+    app.config.setdefault("DB_PATH", os.path.join(app.instance_path, "leads.db"))
+
     # Apply configuration (e.g., from a config file or test_config)
     if test_config:
         app.config.update(test_config)

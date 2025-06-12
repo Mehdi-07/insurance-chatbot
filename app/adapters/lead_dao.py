@@ -13,18 +13,16 @@ def init_db(app_or_path: Flask | str):
     """
     if isinstance(app_or_path, Flask):
         app = app_or_path
-        # When called within an app context, db_path should be instance_path
-        db_folder = app.instance_path or app.root_path
-        db_path = os.path.join(db_folder, 'leads.db')
+    # Prefer DB_PATH from config, fallback to instance_path/leads.db
+        db_path = app.config.get("DB_PATH") or os.path.join(app.instance_path, 'leads.db')
         logger.info(f"DB init: Using Flask app context. DB path: {db_path}")
-    else: # It's a string path, likely for testing or direct script
+    else:  # It's a string path, likely for testing or direct script
         db_path = app_or_path
-        db_folder = os.path.dirname(db_path)
         logger.info(f"DB init: Using direct path. DB path: {db_path}")
 
-    # Ensure the directory for the database exists
+    db_folder = os.path.dirname(db_path)
     if not os.path.exists(db_folder):
-        os.makedirs(db_folder)
+        os.makedirs(db_folder, exist_ok=True)
 
     try:
         conn = sqlite3.connect(db_path)
