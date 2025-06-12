@@ -57,6 +57,6 @@ jobs:
     - name: Run Pytest with Coverage
       run: |
         docker run --rm \
-          -e COVERAGE_FILE=/tmp/.coverage \ # <--- CRITICAL FIX: Pass env var to Docker container
+          -e COVERAGE_FILE=/tmp/.coverage \
           ${{ steps.meta.outputs.IMAGE_NAME }}:master-latest \
-          /bin/bash -c "pytest /app/tests --cov=app --cov-report=xml" # <--- ALSO ADDED /app/tests
+          /bin/bash -c "pytest /app/tests --cov=app --cov-report=xml"
