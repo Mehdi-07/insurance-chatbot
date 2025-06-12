@@ -19,13 +19,13 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4 # Current stable version
+      uses: actions/checkout@v4
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3 # Current stable version
+      uses: docker/setup-buildx-action@v3
 
     - name: Log in to GitHub Container Registry
-      uses: docker/login-action@v3 # Current stable version
+      uses: docker/login-action@v3
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
@@ -55,8 +55,9 @@ jobs:
         cache-to: type=gha,mode=max
 
     - name: Run Pytest with Coverage
-      # This step assumes you have pytest and pytest-cov installed in your Docker image
+      env:
+        # Direct coverage.py to store its data file in /tmp, which is writable
+        COVERAGE_FILE: /tmp/.coverage
       run: |
-        # Use the lowercase image name for running tests
         docker run --rm ${{ steps.meta.outputs.IMAGE_NAME }}:master-latest \
         /bin/bash -c "pytest --cov=app --cov-report=xml"
