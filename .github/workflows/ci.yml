@@ -48,8 +48,8 @@ jobs:
         context: .
         push: true
         tags: |
-          ${{ steps.meta.outputs.IMAGE_NAME }}:${{ steps.meta.outputs.TAG }} # Use the lowercase image name
-          ${{ steps.meta.outputs.IMAGE_NAME }}:master-latest # Use the lowercase image name and master-latest tag
+          ${{ steps.meta.outputs.IMAGE_NAME }}:${{ steps.meta.outputs.TAG }}
+          ${{ steps.meta.outputs.IMAGE_NAME }}:master-latest
         file: ./Dockerfile # Assuming your Dockerfile is in the root
         cache-from: type=gha
         cache-to: type=gha,mode=max
