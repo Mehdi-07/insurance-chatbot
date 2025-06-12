@@ -1,0 +1,8 @@
+flask
+requests
+python-dotenv
+pydantic[email]
+gunicorn
+loguru
+pytest
+pytest-cov

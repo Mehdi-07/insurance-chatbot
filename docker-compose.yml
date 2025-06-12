@@ -1,0 +1,48 @@
+# docker-compose.yml
+version: '3.8' # Specify the Docker Compose file format version
+
+services:
+  # Service for your Flask chatbot application
+  app:
+    build:
+      context: . # Build the image from the current directory (where Dockerfile is)
+      dockerfile: Dockerfile # Specify the Dockerfile to use
+    image: insurance-chatbot:latest # Tag the built image
+    container_name: insurance_chatbot_app # Optional: give your container a specific name
+    ports:
+      - "8000:8000" # Map host port 8000 to container port 8000 (where Gunicorn runs)
+    volumes:
+      # Mount your local source code into the container.
+      # This is useful for development as changes to your code will reflect inside the container
+      # without needing to rebuild the image (Docker Desktop will automatically reload Gunicorn).
+      - .:/app
+    environment:
+      # Load environment variables from the .env file in the host (your local machine)
+      # This is crucial for local development to inject API keys, etc.
+      # In production, these would be managed differently (e.g., Kubernetes secrets, AWS SSM)
+      - GROQ_API_KEY=${GROQ_API_KEY} # Example of how to pass env vars
+      # Add other environment variables as needed, e.g., DATABASE_URL
+    depends_on:
+      # This ensures Redis starts before your app tries to connect to it.
+      # This is a soft dependency; it doesn't wait for Redis to be fully "ready".
+      - redis
+    # For local development, uncomment if you want Flask's debug mode
+    # command: gunicorn -k uvicorn.workers.UvicornWorker app:create_app() --bind 0.0.0.0:8000 --reload
+    # The default CMD in Dockerfile already covers basic running.
+    # --reload flag is useful for local development, but adds complexity to Dockerfile CMD.
+    # Sticking to Dockerfile's CMD for consistency with production.
+
+  # Service for Redis (a key-value store, often used for caching or message queues)
+  # This is defined for future asynchronous tasks (like a task queue for LLM calls).
+  redis:
+    image: "redis:7-alpine" # Use a lightweight Redis image
+    container_name: insurance_chatbot_redis # Optional: give your container a specific name
+    ports:
+      - "6379:6379" # Map host port 6379 to container port 6379 (Redis default)
+    command: ["redis-server", "--appendonly", "yes"] # Ensure data persistence for Redis
+    volumes:
+      - redis_data:/data # Mount a named volume to persist Redis data
+
+# Define named volumes for data persistence
+volumes:
+  redis_data: # Data for the Redis service

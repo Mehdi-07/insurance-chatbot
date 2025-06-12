@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.bak
+*.swp
+*.swo
+*.tmp
+
+# IDEs
+.idea/
+.vscode/
+
+# Docker
+*.log
+logs/
+.env
+.DS_Store
+*.pem
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Project-specific ignored files (add any others you might have)
+# For example, if you have a specific config file not managed by secrets management:
+# config.ini
