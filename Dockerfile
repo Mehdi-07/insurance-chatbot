@@ -48,6 +48,7 @@ COPY --from=builder /usr/local /usr/local
 # Copy the application source code
 COPY app/ app/
 COPY run.py .
+COPY tests/ /app/tests/
 # If you have a logs directory for production logs, ensure it's created and writable.
 # RUN mkdir -p logs && chmod 777 logs # Or better: use a volume for logs in production
 
