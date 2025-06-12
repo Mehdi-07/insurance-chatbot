@@ -55,9 +55,8 @@ jobs:
         cache-to: type=gha,mode=max
 
     - name: Run Pytest with Coverage
-      env:
-        # Direct coverage.py to store its data file in /tmp, which is writable
-        COVERAGE_FILE: /tmp/.coverage
       run: |
-        docker run --rm ${{ steps.meta.outputs.IMAGE_NAME }}:master-latest \
-        /bin/bash -c "pytest --cov=app --cov-report=xml"
+        docker run --rm \
+          -e COVERAGE_FILE=/tmp/.coverage \ # <--- CRITICAL FIX: Pass env var to Docker container
+          ${{ steps.meta.outputs.IMAGE_NAME }}:master-latest \
+          /bin/bash -c "pytest /app/tests --cov=app --cov-report=xml" # <--- ALSO ADDED /app/tests
