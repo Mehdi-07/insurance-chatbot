@@ -53,4 +53,4 @@ jobs:
               -e COVERAGE_FILE=/tmp/.coverage \
               -e TESTING=True \
               ${{ steps.meta.outputs.IMAGE_NAME }}:master-latest \
-              pytest /app/tests --cov=app --cov-report=xml
+              pytest /app/tests --cov=app --cov-report=xml:/tmp/coverage.xml
