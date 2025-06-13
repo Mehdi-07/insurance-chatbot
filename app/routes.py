@@ -4,12 +4,19 @@ from flask import Blueprint, request, jsonify
 from loguru import logger
 from pydantic import ValidationError
 
-# --- Using Absolute Imports for Reliability ---
-# This assumes your project structure is app -> models -> chat_request.py, etc.
-from app.models.chat_request import ChatRequest
-from app.services.llm_service import generate_gpt_reply
+# --- CORRECTED IMPORTS BASED ON YOUR FILE STRUCTURE ---
+
+# Assumes ChatRequest is in a file named `app/models.py`
+from app.models import ChatRequest
+
+# Points to your generate_gpt_reply function in `app/adapters/llm_groq.py`
+from app.adapters.llm_groq import generate_gpt_reply
+
+# Points to your lead_dao module in `app/adapters/`
 from app.adapters import lead_dao
-# --- End of Imports ---
+
+# --- END OF IMPORTS ---
+
 
 bp = Blueprint('routes', __name__)
 
@@ -30,9 +37,9 @@ def chat():
     reply = generate_gpt_reply(data.message)
 
     # After getting the reply, save the lead to the database.
-    # This will trigger the background notifications via RQ.
+    # This will trigger the background notifications via the RQ worker.
     try:
-        # Create a dictionary from your Pydantic model to pass to the save function
+        # Create a dictionary from the Pydantic model to pass to the save function
         lead_data = data.model_dump()
         lead_data['raw_message'] = data.message
 
