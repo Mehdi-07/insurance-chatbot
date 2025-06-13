@@ -23,4 +23,4 @@ EXPOSE 8000
 
 # --- 2. RUN THE DEBUG COMMAND AND START THE SERVER ---
 # The final, production-ready CMD line
-CMD ["gunicorn", "-k", "gthread", "--workers", "2", "--threads", "4", "app:create_app", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "-k", "gthread", "--workers", "2", "--threads", "4", "run:app", "--bind", "0.0.0.0:8000"]
