@@ -1,44 +1,54 @@
-# app/routes.py
-from flask import Blueprint, request, jsonify, render_template
-from .models import ChatRequest, ValidationError
-# Import your GPT service function from its new location
-# The `..` means go up one directory level (from `app/routes.py` to `app/`),
-# then go into `adapters/`, then import from `llm_groq.py`.
-from app.adapters.llm_groq import generate_gpt_reply
+# In app/routes.py
 
-# Create a Blueprint instance
-# 'main' is the name of this blueprint, and __name__ helps Flask locate resources
-bp = Blueprint('main', __name__)
+from flask import Blueprint, request, jsonify
+from loguru import logger
+from pydantic import ValidationError
 
-@bp.route('/')
-def index():
-    """Renders the main index page."""
-    return render_template('index.html')
+# --- Using Absolute Imports for Reliability ---
+# This assumes your project structure is app -> models -> chat_request.py, etc.
+from app.models.chat_request import ChatRequest
+from app.services.llm_service import generate_gpt_reply
+from app.adapters import lead_dao
+# --- End of Imports ---
+
+bp = Blueprint('routes', __name__)
 
 @bp.route('/chat', methods=['POST'])
 def chat():
     """
-    Handles chat messages, validates input with Pydantic,
-    and returns GPT replies.
+    Handles chat messages, validates input, saves a lead,
+    enqueues notifications, and returns GPT replies.
     """
     try:
-        # Validate incoming JSON data against the ChatRequest model
-        # request.get_json() gets the JSON data from the request body
-        # ChatRequest.model_validate() attempts to parse and validate it
         data = ChatRequest.model_validate(request.get_json())
     except ValidationError as e:
-        # If validation fails, return a 422 Unprocessable Entity status
-        # and the detailed validation errors from Pydantic.
         return jsonify({"error": e.errors()}), 422
-    except Exception as e:
-        # Catch any other JSON parsing errors (e.g., if input is not valid JSON)
+    except Exception:
         return jsonify({"error": "Invalid JSON format in request body"}), 400
 
-    # If validation is successful, access the message via data.message
+    # If validation is successful, get the reply from the LLM
     reply = generate_gpt_reply(data.message)
+
+    # After getting the reply, save the lead to the database.
+    # This will trigger the background notifications via RQ.
+    try:
+        # Create a dictionary from your Pydantic model to pass to the save function
+        lead_data = data.model_dump()
+        lead_data['raw_message'] = data.message
+
+        lead_id = lead_dao.save_lead(lead_data)
+        if lead_id:
+            logger.info(f"Chat handled and successfully saved lead with ID: {lead_id}")
+        else:
+            logger.error("Chat handled but failed to save lead to the database.")
+    except Exception as e:
+        # Log the error but don't block the user from getting their chat reply
+        logger.error(f"An exception occurred during lead saving: {e}")
+
     return jsonify({"reply": reply})
 
-@bp.route("/healthz", methods=["GET"]) # Use @bp.route or @bp.get
+
+@bp.route('/healthz', methods=['GET'])
 def health():
-    """Health check endpoint for Kubernetes/ALB."""
-    return jsonify(status="ok"), 200 # Returns JSON object directly
+    """Health check endpoint."""
+    return jsonify(status="ok"), 200
