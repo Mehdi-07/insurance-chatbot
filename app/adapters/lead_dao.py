@@ -2,7 +2,7 @@
 import os
 import psycopg2 # Use the new PostgreSQL driver
 from flask import Flask
-from ..tasks import enqueue_notifications
+from app.tasks import enqueue_notifications
 from loguru import logger
 
 def init_db(app: Flask):
