@@ -22,5 +22,5 @@ COPY . .
 EXPOSE 8000
 
 # --- 2. RUN THE DEBUG COMMAND AND START THE SERVER ---
-# This will first list all files and then start Gunicorn.
-CMD ["sh", "-c", "echo '--- Listing project files ---' && ls -R /app && echo '--- Starting Gunicorn ---' && gunicorn -k uvicorn.workers.UvicornWorker app:create_app --bind 0.0.0.0:8000"]
+# The final, production-ready CMD line
+CMD ["gunicorn", "-k", "gthread", "--workers", "2", "--threads", "4", "app:create_app", "--bind", "0.0.0.0:8000"]
