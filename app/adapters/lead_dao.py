@@ -2,6 +2,7 @@
 import os
 import psycopg2 # Use the new PostgreSQL driver
 from flask import Flask
+from ..tasks import enqueue_notifications
 from loguru import logger
 
 def init_db(app: Flask):
@@ -44,6 +45,7 @@ def save_lead(lead_data: dict):
     sql = """INSERT INTO leads(name, email, zip_code, phone, quote_type, raw_message)
              VALUES(%s, %s, %s, %s, %s, %s) RETURNING id;"""
     
+    conn = None
     try:
         conn = psycopg2.connect(conn_url)
         with conn.cursor() as cursor:
@@ -58,10 +60,13 @@ def save_lead(lead_data: dict):
             lead_id = cursor.fetchone()[0]
             conn.commit()
             logger.info(f"Successfully saved lead with ID: {lead_id}")
+            enqueue_notifications(lead_data)
             return lead_id
     except Exception as e:
         logger.error(f"Failed to save lead: {e}")
+        if conn:
+            conn.rollback()
         return None
     finally:
-        if 'conn' in locals() and conn is not None:
+        if conn:
             conn.close()
