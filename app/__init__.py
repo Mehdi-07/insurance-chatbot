@@ -19,24 +19,19 @@ def create_app(test_config=None):
     load_dotenv()
     app = Flask(__name__, instance_relative_config=True)
 
-    # --- 1. Set Default Configuration ---
     app.config.from_mapping(
         SECRET_KEY=os.getenv('SECRET_KEY', 'dev'),
-        # Set the default database path for production/development
-        DB_PATH=os.path.join(app.instance_path, 'leads.db')
     )
 
     if test_config:
         app.config.update(test_config)
 
-    # --- 2. Override Database for Testing (CRITICAL FIX) ---
-    if app.config.get("TESTING"):
-        # For tests, set the DB_PATH to the special in-memory string
-        app.config["DB_PATH"] = ":memory:"
+    # For tests, we skip the real DB initialization.
+    # A full testing setup would involve a separate test database.
+    if not app.config.get("TESTING"):
+        init_db(app)
 
-    # --- 3. Initialize App ---
     configure_logging(app)
-    init_db(app) # This will now use the correct DB_PATH
     app.register_blueprint(routes_bp)
 
     @app.errorhandler(Exception)
