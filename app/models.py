@@ -1,29 +1,20 @@
-# app/models.py
-from pydantic import BaseModel, Field, EmailStr, ValidationError
+# In app/models.py
 
-# Model for incoming chat requests
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional
+
+# This will be our single, complete model for incoming chat requests.
 class ChatRequest(BaseModel):
-    """
-    Represents the expected structure for incoming chat messages.
-    - message: A string field, which must have a minimum length of 3 characters.
-    """
-    message: str = Field(..., min_length=3) # '...' means required, min_length is a validator
+    # The user's message is the only truly required field to start a chat
+    message: str = Field(..., min_length=2)
 
-# Model for lead information (e.g., to be stored in the database)
-class Lead(BaseModel):
-    """
-    Represents the structure for a new insurance lead.
-    - name: Required string.
-    - email: Optional email string (Pydantic validates email format).
-    - zip: Optional string for zip code.
-    - quote_type: Optional string (e.g., 'auto', 'home', 'life').
-    - raw_message: Required string, to store the original user query.
-    """
-    name: str
-    email: EmailStr | None = None # Use EmailStr for email format validation, | None for optional
-    zip: str | None = None
-    quote_type: str | None = None
-    raw_message: str
+    # All other lead fields are optional, as they may be collected during the conversation
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    # IMPORTANT: Using 'zip_code' to match the database table column
+    zip_code: Optional[str] = None
+    phone: Optional[str] = None
+    quote_type: Optional[str] = None
 
-# You can add more models here as your application grows
-# For example, ChatResponse, or specific quote request models.
+# The separate 'Lead' model is no longer needed for request validation,
+# as its fields are now included in ChatRequest.
