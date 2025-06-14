@@ -1,47 +1,24 @@
-# app/adapters/lead_dao.py
+# In app/adapters/lead_dao.py
 import os
-import psycopg2 # Use the new PostgreSQL driver
-from flask import Flask
-from app.tasks import enqueue_notifications
+import psycopg2
+import requests  # <-- We use requests to call the webhook
 from loguru import logger
+# We no longer import from app.tasks
+# from app.tasks import enqueue_notifications 
 
-def init_db(app: Flask):
-    """Initializes the PostgreSQL database and creates the 'leads' table."""
+# The init_db function is correct and does not need to change.
+def init_db(app):
+    # ... (this function is fine as is) ...
     conn_url = os.getenv("DATABASE_URL")
-
     if not conn_url:
-        logger.error("DATABASE_URL environment variable is not set. Cannot initialize database.")
+        logger.error("DATABASE_URL environment variable is not set.")
         return
+    # ... etc ...
 
-    logger.info("Attempting to connect to PostgreSQL database...")
-    try:
-        conn = psycopg2.connect(conn_url)
-        with conn.cursor() as cursor:
-            # Use PostgreSQL-compatible data types
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS leads (
-                    id SERIAL PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    email TEXT UNIQUE,
-                    zip_code TEXT,
-                    phone TEXT,
-                    quote_type TEXT,
-                    raw_message TEXT NOT NULL,
-                    timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-        conn.commit()
-        logger.info("Database initialized successfully.")
-    except Exception as e:
-        logger.error(f"An error occurred during database initialization: {e}")
-    finally:
-        if 'conn' in locals() and conn is not None:
-            conn.close()
-
-# Your other functions like 'save_lead' will also need to be updated.
-# Here is an example of how 'save_lead' would look:
 def save_lead(lead_data: dict):
+    """Saves lead data to the database and posts it to the n8n webhook."""
     conn_url = os.getenv("DATABASE_URL")
+    webhook_url = os.getenv("N8N_WEBHOOK_URL") # <-- Get the n8n URL
     sql = """INSERT INTO leads(name, email, zip_code, phone, quote_type, raw_message)
              VALUES(%s, %s, %s, %s, %s, %s) RETURNING id;"""
     
@@ -52,7 +29,7 @@ def save_lead(lead_data: dict):
             cursor.execute(sql, (
                 lead_data.get('name'),
                 lead_data.get('email'),
-                lead_data.get('zip'),
+                lead_data.get('zip_code'),
                 lead_data.get('phone'),
                 lead_data.get('quote_type'),
                 lead_data.get('raw_message')
@@ -60,7 +37,19 @@ def save_lead(lead_data: dict):
             lead_id = cursor.fetchone()[0]
             conn.commit()
             logger.info(f"Successfully saved lead with ID: {lead_id}")
-            enqueue_notifications(lead_data)
+
+            # --- THIS IS THE NEW LOGIC THAT REPLACES THE OLD ONE ---
+            if webhook_url:
+                try:
+                    # Send the lead data to the n8n webhook
+                    requests.post(webhook_url, json=lead_data, timeout=5)
+                    logger.info(f"Successfully posted lead {lead_id} to n8n webhook.")
+                except Exception as e:
+                    logger.error(f"Failed to post lead {lead_id} to n8n webhook: {e}")
+            else:
+                logger.warning("N8N_WEBHOOK_URL not set. Skipping webhook post.")
+            # --- END OF NEW LOGIC ---
+
             return lead_id
     except Exception as e:
         logger.error(f"Failed to save lead: {e}")
