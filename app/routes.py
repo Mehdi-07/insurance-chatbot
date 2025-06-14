@@ -1,6 +1,6 @@
 # In app/routes.py
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from loguru import logger
 from pydantic import ValidationError
 from app.middleware import require_api_key
