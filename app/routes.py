@@ -3,6 +3,7 @@
 from flask import Blueprint, request, jsonify
 from loguru import logger
 from pydantic import ValidationError
+from app.middleware import require_api_key
 
 # --- CORRECTED IMPORTS BASED ON YOUR FILE STRUCTURE ---
 
@@ -21,6 +22,7 @@ from app.adapters import lead_dao
 bp = Blueprint('routes', __name__)
 
 @bp.route('/chat', methods=['POST'])
+@require_api_key
 def chat():
     """
     Handles chat messages, validates input, saves a lead,
