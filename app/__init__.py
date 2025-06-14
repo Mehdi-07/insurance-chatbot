@@ -34,9 +34,11 @@ def create_app(test_config=None):
     configure_logging(app)
     app.register_blueprint(routes_bp)
 
-    @app.errorhandler(Exception)
-    def global_handler(e):
-        logger.exception(f"Unhandled exception caught by global handler: {e}")
-        return jsonify({"error": "internal server error"}), 500
+    if not app.config.get("TESTING"):
+        @app.errorhandler(Exception)
+        def global_handler(e):
+            """Global error handler for production."""
+            logger.exception(f"Unhandled exception caught by global handler: {e}")
+            return jsonify({"error": "internal server error"}), 500
 
     return app
