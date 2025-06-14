@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from app.middleware import require_api_key
 
 # --- CORRECTED IMPORTS BASED ON YOUR FILE STRUCTURE ---
+from app.middleware import require_api_key
 
 # Assumes ChatRequest is in a file named `app/models.py`
 from app.models import ChatRequest
@@ -20,6 +21,13 @@ from app.adapters import lead_dao
 
 
 bp = Blueprint('routes', __name__)
+
+# --- ADD THIS NEW ROUTE FOR YOUR HOMEPAGE ---
+@bp.route('/', methods=['GET'])
+def index():
+    """Serves the main HTML page that will host the chat widget."""
+    return render_template('index.html')
+# --- END OF NEW ROUTE ---
 
 @bp.route('/chat', methods=['POST'])
 @require_api_key
