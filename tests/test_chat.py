@@ -8,13 +8,16 @@ TEST_API_KEY = "test-secret-key"
 
 # This patch decorator will apply to ALL test functions in this file,
 # preventing them from making real database or LLM calls.
+@patch('app.middleware.redis_conn')
 @patch('app.routes.lead_dao.save_lead', return_value=1)
 @patch('app.routes.generate_gpt_reply')
-def test_chat_logic(mock_generate_reply, mock_save_lead):
+def test_chat_logic(mock_generate_reply, mock_save_lead, mock_redis_conn):
     """
     Tests all chat logic scenarios.
     Mocks are passed as arguments by the decorator.
     """
+    mock_redis_conn.pipeline.return_value.execute.return_value = [1]  # Simulate Redis rate limit success
+
     client = create_app({
         "TESTING": True,
         "WIDGET_API_KEY": TEST_API_KEY
