@@ -3,10 +3,9 @@
 from flask import Blueprint, request, jsonify, render_template
 from loguru import logger
 from pydantic import ValidationError
-from app.middleware import require_api_key, rate_limiter
 
 # --- CORRECTED IMPORTS BASED ON YOUR FILE STRUCTURE ---
-from app.middleware import require_api_key
+from app.middleware import require_api_key, rate_limiter
 
 # Assumes ChatRequest is in a file named `app/models.py`
 from app.models import ChatRequest
@@ -30,8 +29,8 @@ def index():
 # --- END OF NEW ROUTE ---
 
 @bp.route('/chat', methods=['POST'])
-@require_api_key
-@rate_limiter
+@require_api_key  # Authenticate first
+@rate_limiter     # Then apply rate limiting
 def chat():
     """
     Handles chat messages, validates input, saves a lead,
