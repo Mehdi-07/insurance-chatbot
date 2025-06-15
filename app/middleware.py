@@ -2,7 +2,7 @@
 
 import os
 from functools import wraps
-from flask import request, abort
+from flask import request, abort, current_app
 from loguru import logger
 
 # This import will now work correctly
@@ -11,10 +11,16 @@ from app.tasks import redis_conn
 def require_api_key(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        expected_api_key = os.getenv('WIDGET_API_KEY')
+        expected_api_key = current_app.config.get('WIDGET_API_KEY')
+        
+        if not expected_api_key:
+            abort(500, description="API key not configured")
+            
         provided_api_key = request.headers.get('X-API-Key')
-        if not expected_api_key or not provided_api_key or provided_api_key != expected_api_key:
+        
+        if not provided_api_key or provided_api_key != expected_api_key:
             abort(401, description="Unauthorized: Invalid or missing API Key.")
+            
         return f(*args, **kwargs)
     return decorated_function
 

@@ -64,3 +64,10 @@ def test_chat_unauthorized_missing_key():
         data=json.dumps({"message": "This should fail"})
     )
     assert response.status_code == 401
+
+    response = client.post(
+        CHAT_URL,
+        data=json.dumps({"message": "This should also fail"}),
+        headers={"X-API-Key": "wrong-key"}
+    )
+    assert response.status_code == 401
