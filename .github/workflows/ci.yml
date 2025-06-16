@@ -52,11 +52,12 @@ jobs:
               ${{ steps.meta.outputs.IMAGE_NAME }}:master-latest \
               /bin/sh -c "if [ -d /app/instance ]; then echo '/app/instance exists'; else echo '/app/instance does NOT exist'; fi && ls -l /app"   
 
+      # In .github/workflows/ci.yml
       - name: Run Pytest with Coverage
         run: |
-            docker run --rm \
-              -e PYTHONPATH=/app \
-              -e COVERAGE_FILE=/tmp/.coverage \
-              -e TESTING=True \
-              ${{ steps.meta.outputs.IMAGE_NAME }}:master-latest \
-              pytest /app/tests --cov=app --cov-report=xml:/tmp/coverage.xml
+          docker run --rm \
+            -e TESTING=True \
+            -e IS_TESTING=True \
+            -e WIDGET_API_KEY=test-secret-key \
+            ${{ steps.meta.outputs.IMAGE_NAME }}:master-latest \
+            pytest /app/tests --cov=app --cov-report=xml:/tmp/coverage.xml
