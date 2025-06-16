@@ -2,40 +2,40 @@
 import os
 from loguru import logger
 from rq import Queue
+from redis import Redis # Import the base Redis class
 
 # This variable will hold our Redis connection, real or fake.
 redis_conn = None
+# This is a placeholder queue that will be replaced if a real connection is made.
+q = Queue(is_async=False, connection=Redis(host='dummy')) 
 
-# Check for a special environment variable that we will set only during tests.
-if os.getenv("IS_TESTING") == "True":
-    # If testing, use a fake in-memory Redis that requires no network.
+# Check if we are running in the test environment set by GitHub Actions
+is_testing = os.getenv("IS_TESTING") == "True"
+
+if is_testing:
+    # For tests, use a fake in-memory Redis.
     try:
         import fakeredis
         redis_conn = fakeredis.FakeStrictRedis()
-        logger.info("--- USING FAKE REDIS FOR TESTS ---")
+        q = Queue('default', connection=redis_conn) # Replace the dummy queue
+        logger.info("--- USING FAKE REDIS FOR TESTING ---")
     except ImportError:
-        logger.error("fakeredis is not installed. pip install fakeredis")
+        logger.error("fakeredis is not installed. Tests will fail.")
         redis_conn = None
 else:
-    # If not testing (i.e., on Render), connect to the real Redis service.
+    # For production on Render, connect to the real Redis service.
     from redis import from_url
     redis_url = os.getenv("REDIS_URL")
-    try:
-        if redis_url:
+    if redis_url:
+        try:
             redis_conn = from_url(redis_url)
+            q = Queue('default', connection=redis_conn) # Replace the dummy queue
             logger.info("Successfully connected to REAL Redis.")
-        else:
-            logger.warning("REDIS_URL not set. Redis features will be disabled.")
-    except Exception as e:
-        redis_conn = None
-        logger.error(f"Could not connect to REAL Redis: {e}")
-
-# Create the queue using the connection object we just created (real or fake).
-if redis_conn:
-    q = Queue('default', connection=redis_conn)
-else:
-    # If no Redis is available, create a dummy queue that runs tasks immediately
-    q = Queue(is_async=False)
+        except Exception as e:
+            logger.error(f"Could not connect to REAL Redis: {e}")
+            redis_conn = None
+    else:
+        logger.warning("REDIS_URL not set. Redis features will be disabled.")
 
 
 # The rest of your task functions do not need to change.
@@ -48,12 +48,12 @@ def twilio_sms(phone_number: str, message: str):
     return f"Sent SMS to {phone_number}"
 
 def enqueue_notifications(lead_info: dict):
-    # This check is still good practice.
-    if q and q.is_async:
+    # This check ensures we only queue tasks if we have a real or fake connection
+    if redis_conn:
         message = f"New lead: {lead_info.get('name')}, Email: {lead_info.get('email')}"
         q.enqueue(slack_alert, message)
         if lead_info.get('phone'):
             q.enqueue(twilio_sms, lead_info.get('phone'), "A new lead was created.")
         logger.info("Enqueued Slack and SMS notification tasks.")
     else:
-        logger.warning("Redis not connected or in test mode. Skipping task queueing.")
+        logger.warning("Redis not connected. Skipping task queueing.")

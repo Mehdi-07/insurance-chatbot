@@ -9,3 +9,4 @@ pytest-cov
 psycopg2-binary
 rq
 pandas
+fakeredis
