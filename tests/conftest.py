@@ -4,25 +4,25 @@ import pytest
 from unittest.mock import patch
 from app import create_app
 
+# In tests/conftest.py
+
 @pytest.fixture(autouse=True)
 def mock_all_external_services():
     """
-    A pytest fixture that automatically mocks all external services (Redis, etc.)
-    for every test to ensure isolation and prevent real network calls.
-    'autouse=True' means it runs for every test without needing to be requested.
+    Mocks all external services for all tests to ensure isolation.
     """
-    # We patch every place where redis_conn is imported and used
-    with patch('app.init_session.redis_conn') as mock_redis_for_session, \
-         patch('app.middleware.redis_conn') as mock_redis_for_middleware, \
+    # We will mock the 'redis_conn' object in the 'tasks' module where it is created.
+    # Any other module that imports it will now get the mock instead.
+    with patch('app.tasks.redis_conn') as mock_redis, \
          patch('app.routes.generate_gpt_reply') as mock_llm, \
          patch('app.routes.lead_dao.save_lead') as mock_db_save:
+        
+        # If redis is None (because the connection failed), we can't set attributes on it.
+        # So we only configure it if the mock was successful.
+        if mock_redis:
+            mock_redis.hget.return_value = b'start'
+            mock_redis.pipeline.return_value.execute.return_value = [1]
 
-        # Configure the mocks to behave like the real thing
-        # This prevents ConnectionErrors from both session and rate limiter
-        mock_redis_for_session.hget.return_value = b'start'
-        mock_redis_for_middleware.pipeline.return_value.execute.return_value = [1]
-
-        # Yield control back to the test function to run
         yield
 
 @pytest.fixture
