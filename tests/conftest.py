@@ -4,37 +4,36 @@ import pytest
 from unittest.mock import patch
 from app import create_app
 
-# In tests/conftest.py
-
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def mock_all_external_services():
     """
-    Mocks all external services for all tests to ensure isolation.
+    This fixture automatically mocks all external services (Redis, etc.)
+    for every test to ensure complete isolation from the network.
     """
-    # We will mock the 'redis_conn' object in the 'tasks' module where it is created.
-    # Any other module that imports it will now get the mock instead.
     with patch('app.tasks.redis_conn') as mock_redis, \
          patch('app.routes.generate_gpt_reply') as mock_llm, \
          patch('app.routes.lead_dao.save_lead') as mock_db_save:
         
-        # If redis is None (because the connection failed), we can't set attributes on it.
-        # So we only configure it if the mock was successful.
         if mock_redis:
+            mock_redis.ping.return_value = True
+            mock_redis.hset.return_value = 1
             mock_redis.hget.return_value = b'start'
             mock_redis.pipeline.return_value.execute.return_value = [1]
-
+        
         yield
 
 @pytest.fixture
 def client():
-    """Creates a Flask test client for use in tests."""
+    """Creates a Flask test client that all tests can use."""
     app = create_app({
         'TESTING': True,
         'WIDGET_API_KEY': 'test-secret-key'
     })
-    return app.test_client()
+    
+    with patch('app.init_db'):
+        yield app.test_client()
 
 @pytest.fixture
 def key_header():
-    """Provides the authorization header for protected routes."""
+    """Provides the correct API key header for tests."""
     return {'X-API-Key': 'test-secret-key'}

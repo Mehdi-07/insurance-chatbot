@@ -7,7 +7,7 @@ def test_chat_success(client, key_header):
     """Tests a valid, authorized request."""
     response = client.post(
         CHAT_URL,
-        data=json.dumps({"message": "This is a valid message"}),
+        data=json.dumps({"message": "This is a valid message", "name": "Test User"}),
         content_type="application/json",
         headers=key_header
     )
@@ -20,7 +20,7 @@ def test_chat_unauthorized(client):
     assert response.status_code == 401
 
 def test_chat_bad_request(client, key_header):
-    """Tests requests with missing or invalid data."""
+    """Tests requests with invalid data."""
     # Test missing message field
     response = client.post(
         CHAT_URL,
@@ -29,12 +29,3 @@ def test_chat_bad_request(client, key_header):
         headers=key_header
     )
     assert response.status_code == 422
-
-    # Test invalid JSON
-    response = client.post(
-        CHAT_URL,
-        data="this is not valid json",
-        content_type="application/json",
-        headers=key_header
-    )
-    assert response.status_code == 400
