@@ -16,6 +16,9 @@ from app.adapters.llm_groq import generate_gpt_reply
 # Points to your lead_dao module in `app/adapters/`
 from app.adapters import lead_dao
 
+# Points to your is_valid_zip function in `app/services/zip_validator.py`
+from app.services.zip_validator import is_valid_zip
+
 # --- END OF IMPORTS ---
 
 
@@ -42,6 +45,12 @@ def chat():
         return jsonify({"error": e.errors()}), 422
     except Exception:
         return jsonify({"error": "Invalid JSON format in request body"}), 400
+    
+    # Validate the ZIP code if provided
+    if data.zip_code and not is_valid_zip(data.zip_code):
+        return jsonify({
+        "reply": f"I'm sorry, it looks like we do not currently serve the {data.zip_code} area. We are expanding soon!"
+        }), 200
 
     # If validation is successful, get the reply from the LLM
     reply = generate_gpt_reply(data.message)
