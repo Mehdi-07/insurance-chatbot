@@ -27,45 +27,53 @@ def chat():
     """
     req_data = request.get_json()
     if not req_data:
-        return jsonify({"error": "Invalid JSON format in request body"}), 400
+        return jsonify({"error": "Invalid JSON format"}), 400
         
     user_message = req_data.get("message", "")
     session_id = session.get("uid")
 
-    # --- 3. ADD THIS NEW WIZARD LOGIC ---
-    # Check if the message is a special command from a button click
+    # --- THIS IS THE CORRECTED WIZARD LOGIC ---
     if user_message.startswith("__CLICKED__"):
-        # The value of the button click, e.g., "ask_auto_year"
-        clicked_node_id = user_message.split(":", 1)[1]
+        # The value from the button click, e.g., "personal" or "ask_auto_year"
+        clicked_value = user_message.split(":", 1)[1]
         
-        # Find out what the last question was to save the answer correctly
+        # Find out what the last question was
         current_node_id = wizard_service.get_current_node_id(session_id)
         current_node_data = wizard_service.get_node_data(current_node_id)
         
-        # Save the answer to Redis (e.g., save 'quote_type' as 'ask_auto_year')
-        answer_key = current_node_data.get("save_as")
-        if answer_key:
-            wizard_service.save_answer(session_id, answer_key, clicked_node_id)
-            
-        # Get the next question/node from the flow definition
-        next_node_data = wizard_service.get_node_data(clicked_node_id)
-        # Update the user's position in the flow
-        wizard_service.advance_to_node(session_id, clicked_node_id)
+        # Find the specific button that was clicked to get the correct next_node
+        next_node_id = None
+        if current_node_data and "buttons" in current_node_data:
+            for button in current_node_data["buttons"]:
+                if button.get("value") == clicked_value:
+                    next_node_id = button.get("next_node")
+                    break
         
-        # Return the next question and buttons directly, without calling the LLM
-        return jsonify(next_node_data)
-    # --- END OF WIZARD LOGIC ---
+        # Save the answer to Redis (e.g., save 'coverage_category' as 'personal')
+        answer_key = current_node_data.get("save_as") if current_node_data else None
+        if answer_key:
+            wizard_service.save_answer(session_id, answer_key, clicked_value)
+            
+        # Get the data for the next step in the conversation
+        if next_node_id:
+            next_node_data = wizard_service.get_node_data(next_node_id)
+            wizard_service.advance_to_node(session_id, next_node_id)
+            return jsonify(next_node_data)
+        else:
+            # If we can't find a next node, something is wrong or the flow ended.
+            # Fall back to a safe final message.
+            final_node = wizard_service.get_node_data("get_contact_info")
+            return jsonify(final_node)
+    # --- END OF CORRECTED WIZARD LOGIC ---
 
-    # --- This is your existing logic for handling regular text messages ---
+    # --- Logic for handling free-text messages (this part is fine) ---
     try:
         data = ChatRequest.model_validate(req_data)
     except ValidationError as e:
         return jsonify({"error": e.errors()}), 422
 
     if data.zip_code and not is_valid_zip(data.zip_code):
-        return jsonify({
-            "reply": f"I'm sorry, we do not currently serve the {data.zip_code} area."
-        }), 200
+        return jsonify({"reply": f"Sorry, we do not serve the {data.zip_code} area."}), 200
     
     # Build a contextual prompt for the LLM
     prompt_context = f"""A user has provided the following information.
