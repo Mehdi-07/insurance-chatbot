@@ -3,20 +3,26 @@ import os
 import pandas as pd
 import requests
 from loguru import logger
+from flask import Flask
 
-try:
-    # Construct the full path to the CSV file
-    # Assumes the app is run from the project root.
-    csv_path = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'zips.csv')
-    APPROVED_ZIPS_DF = pd.read_csv(csv_path, dtype={'zip_code': str})
-    APPROVED_ZIPS_SET = set(APPROVED_ZIPS_DF['zip_code'])
-    logger.info(f"Successfully loaded {len(APPROVED_ZIPS_SET)} ZIP codes from local CSV.")
-except FileNotFoundError:
-    logger.error(f"Could not find the ZIP code CSV file. Fallback will not work.")
-    APPROVED_ZIPS_SET = set()
+# Global variable to hold the loaded data
+APPROVED_ZIPS_SET = set()
+
+def load_zips(app: Flask):
+    """Loads ZIP codes from CSV using the app's root path. Must be called once on startup."""
+    global APPROVED_ZIPS_SET
+    try:
+        # Build a reliable, absolute path to the data file
+        csv_path = os.path.join(app.root_path, '..', 'data', 'zips.csv')
+        df = pd.read_csv(csv_path, dtype={'zip_code': str})
+        APPROVED_ZIPS_SET = set(df['zip_code'])
+        logger.info(f"Successfully loaded {len(APPROVED_ZIPS_SET)} ZIP codes from local CSV.")
+    except FileNotFoundError:
+        logger.error(f"Could not find the ZIP code CSV file at '{csv_path}'. Fallback will not work.")
+        APPROVED_ZIPS_SET = set()
 
 def _is_valid_zip_from_csv(zip_code: str) -> bool:
-    """Fallback function to check the ZIP against the local CSV file."""
+    """Fallback function to check the ZIP against the loaded local CSV file."""
     return zip_code in APPROVED_ZIPS_SET
 
 def is_valid_zip(zip_code: str) -> bool:
@@ -30,7 +36,7 @@ def is_valid_zip(zip_code: str) -> bool:
         response.raise_for_status()
         data = response.json()
         state = data['places'][0]['state abbreviation']
-
+        
         # Check if the state from the API response is in our approved list
         approved_states = {'MS', 'AL', 'LA', 'GA'}
         logger.info(f"API lookup for ZIP {zip_code} returned state: {state}")

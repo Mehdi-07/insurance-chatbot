@@ -2,22 +2,28 @@
 import json
 import os
 from loguru import logger
+from flask import Flask
 from app.tasks import redis_conn
 
-# Load the entire conversation flow from the JSON file into memory
-try:
-    # This path assumes your flows folder is in the project root
-    with open('flows/premium.json', 'r') as f:
-        FLOW_DEFINITION = json.load(f)
-    logger.info("Successfully loaded premium.json conversation flow.")
-except FileNotFoundError:
-    logger.error("CRITICAL: flows/premium.json not found. The button wizard will not work.")
-    FLOW_DEFINITION = {}
+# Global variable to hold the loaded flow
+FLOW_DEFINITION = {}
+
+def load_flow(app: Flask):
+    """Loads the conversation flow JSON using the app's root path."""
+    global FLOW_DEFINITION
+    try:
+        # Build a reliable, absolute path to the data file
+        flow_path = os.path.join(app.root_path, '..', 'flows', 'premium.json')
+        with open(flow_path, 'r') as f:
+            FLOW_DEFINITION = json.load(f)
+        logger.info("Successfully loaded premium.json conversation flow.")
+    except FileNotFoundError:
+        logger.error(f"CRITICAL: Conversation flow file not found at '{flow_path}'. Wizard will not work.")
 
 def get_current_node_id(session_id: str) -> str:
     """Gets the user's current position in the flow from Redis."""
     if not redis_conn:
-        return "start" # Default to start if redis is down
+        return "start"
     current_node_bytes = redis_conn.hget(f"ctx:{session_id}", "current_node")
     # hget returns bytes, so we need to decode it to a string
     return current_node_bytes.decode('utf-8') if current_node_bytes else "start"
