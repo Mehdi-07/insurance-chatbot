@@ -11,10 +11,14 @@ class ChatRequest(BaseModel):
     # All other lead fields are optional, as they may be collected during the conversation
     name: Optional[str] = None
     email: Optional[EmailStr] = None
-    # IMPORTANT: Using 'zip_code' to match the database table column
-    zip_code: Optional[str] = None
     phone: Optional[str] = None
+
+    # Optional fields that the wizard or user might provide
+    zip_code: Optional[str] = None
     quote_type: Optional[str] = None
+    coverage_category: Optional[str] = None
+    vehicle_year: Optional[str] = None
+    home_type: Optional[str] = None
 
 # The separate 'Lead' model is no longer needed for request validation,
 # as its fields are now included in ChatRequest.
