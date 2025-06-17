@@ -1,0 +1,65 @@
+{
+    "start": {
+        "text": "Welcome to TPI Insurance! To get started, are you looking for Personal or Business insurance?",
+        "buttons": [
+            {
+                "text": "👤 Personal",
+                "value": "personal",
+                "next_node": "ask_personal_type"
+            },
+            {
+                "text": "🏢 Business",
+                "value": "business",
+                "next_node": "ask_business_type"
+            }
+        ],
+        "save_as": "coverage_category"
+    },
+    "ask_personal_type": {
+        "text": "Great. What type of personal insurance can I help you with today?",
+        "buttons": [
+            {
+                "text": "🚗 Auto Insurance",
+                "value": "auto",
+                "next_node": "get_contact_info"
+            },
+            {
+                "text": "🏠 Homeowners Insurance",
+                "value": "home",
+                "next_node": "get_contact_info"
+            },
+            {
+                "text": "Condo",
+                "value": "condo",
+                "next_node": "get_contact_info"
+            },
+            {
+                "text": "Renters",
+                "value": "renters",
+                "next_node": "get_contact_info"
+            }
+        ],
+        "save_as": "quote_type"
+    },
+    "ask_business_type": {
+        "text": "We can certainly help with that. What type of business insurance are you interested in?",
+        "buttons": [
+            {
+                "text": "General Liability",
+                "value": "general_liability",
+                "next_node": "get_contact_info"
+            },
+            {
+                "text": "Commercial Auto",
+                "value": "commercial_auto",
+                "next_node": "get_contact_info"
+            }
+        ],
+        "save_as": "quote_type"
+    },
+    "get_contact_info": {
+        "text": "Perfect. An agent will prepare that for you shortly. What is the best name, email, and phone number to reach you at?",
+        "buttons": [],
+        "save_as": null
+    }
+}
