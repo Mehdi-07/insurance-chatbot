@@ -1,5 +1,6 @@
 # app/extensions.py
 import os
+import sys
 import logging # Keep this import for the LoguruHandler bridging
 from flask import Flask, jsonify
 from loguru import logger # This is the loguru logger object
@@ -10,44 +11,43 @@ from loguru import logger # This is the loguru logger object
 # --- End Loguru Global Configuration ---
 
 
-def configure_logging(app: Flask):
-    """
-    Configures Flask's default logger to use Loguru handlers.
-    This ensures app.logger messages also go through Loguru.
-    """
-    # Remove all existing handlers from Flask's default logger
-    # This is crucial to prevent duplicate log messages if Flask adds its own handlers
-    for handler in list(app.logger.handlers):
-        app.logger.removeHandler(handler)
-
-    # Add Loguru's handler to Flask's app.logger
-    # This redirects all messages sent to app.logger to Loguru
-    app.logger.addHandler(LoguruHandler())
-    # Set Flask's logger level to match Loguru's default or configured level
-    app.logger.setLevel(logging.INFO) # Use logging.INFO as a standard level
-
-    app.logger.info("Flask's default logger now handled by Loguru.")
-
-
-# This helper class bridges Flask's standard logging to Loguru
-# It needs the standard 'logging' module, hence the 'import logging' above.
 class LoguruHandler(logging.Handler):
     def emit(self, record):
         try:
-            # Attempt to map standard logging levels to Loguru's levels
             level = logger.level(record.levelname).name
         except ValueError:
-            # Fallback if a direct mapping isn't found
-            level = record.levelname
+            level = record.levelno
 
-        # Determine the correct frame to get the source file/line for Loguru
         frame, depth = logging.currentframe(), 2
         while frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back
             depth += 1
 
-        # Use Loguru's logging capabilities
         logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+
+
+def configure_logging(app: Flask):
+    """
+    Configures Loguru for JSON output and intercepts Flask's default loggers.
+    """
+    # Step 1: Remove default handlers and add our primary JSON handler.
+    # This is the part from my last message.
+    logger.remove()
+    logger.add(
+        sys.stdout,
+        serialize=True, # Format logs as JSON
+        level="INFO",
+        enqueue=True
+    )
+
+    # Step 2: Now, redirect Flask's loggers to our configured Loguru sink.
+    # This is the part you already had.
+    for handler in list(app.logger.handlers):
+        app.logger.removeHandler(handler)
+    
+    app.logger.addHandler(LoguruHandler())
+    
+    logger.info("Loguru logging configured and Flask's logger is intercepted.")
 
 
 def init_db(app: Flask):
