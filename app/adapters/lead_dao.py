@@ -101,7 +101,9 @@ def save_lead(lead_data: dict):
     except Exception as e:
         logger.error(f"An unexpected error occurred in save_lead: {e}")
         if conn: conn.rollback()
+        
         return None
     finally:
         if conn:
             conn.close()
+

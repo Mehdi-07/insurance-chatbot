@@ -47,3 +47,21 @@ def advance_to_node(session_id: str, node_id: str):
     session_key = f"ctx:{session_id}"
     redis_conn.hset(session_key, "current_node", node_id)
     logger.info(f"Advanced session {session_id} to node: {node_id}")
+
+# Add this function to the bottom of app/services/wizard_service.py
+def get_all_answers(session_id: str) -> dict:
+    """Retrieves all answers for a given session from Redis."""
+    if not redis_conn:
+        return {}
+    
+    answers_bytes = redis_conn.hgetall(f"ctx:{session_id}")
+    # hgetall returns bytes, so we decode them into a clean dictionary
+    answers = {k.decode('utf-8'): v.decode('utf-8') for k, v in answers_bytes.items()}
+    
+    # We only want the 'answers:', so let's filter for them
+    final_answers = {}
+    for key, value in answers.items():
+        if key.startswith("answers:"):
+            final_answers[key.replace("answers:", "")] = value
+            
+    return final_answers
