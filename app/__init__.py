@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from flask import Flask, jsonify, session
 from dotenv import load_dotenv
 from loguru import logger
+from flask_cors import CORS
 
 from .extensions import configure_logging
 from .routes import bp as routes_bp
@@ -13,7 +14,9 @@ from .services.wizard_service import load_flow
 from .services.zip_validator import load_zips
 
 def create_app(test_config=None):
-    app = Flask(__name__, instance_relative_config=True)
+    app = Flask(__name__, instance_relative_config=True, static_folder=None)
+
+    CORS(app)
     load_dotenv()
 
     # --- Configuration ---
