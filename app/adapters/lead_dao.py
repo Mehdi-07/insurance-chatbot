@@ -85,7 +85,8 @@ def save_lead(lead_data: dict):
                         "coverage_category": lead_data.get('coverage_category'),
                         "vehicle_year": lead_data.get('vehicle_year'),
                         "home_type": lead_data.get('home_type'),
-                        "raw_message": lead_data.get('raw_message')
+                        "raw_message": lead_data.get('raw_message'),
+                        "session_id": lead_data.get('session_id')
                     }
                     requests.post(webhook_url, json=n8n_payload, timeout=5)
                     logger.info(f"Successfully posted lead {lead_id} to n8n webhook.")
