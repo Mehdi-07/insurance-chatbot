@@ -26,80 +26,61 @@ def index():
 @require_api_key
 @rate_limiter
 def chat():
-    """
-    Handles all chat interactions, including starting the flow, button clicks,
-    and free-text messages.
-    """
     req_data = request.get_json()
-    if not req_data:
-        return jsonify({"error": "Invalid JSON format"}), 400
+    if not req_data: return jsonify({"error": "Invalid JSON"}), 400
         
     user_message = req_data.get("message", "")
     session_id = session.get("uid")
     current_node_id = wizard_service.get_current_node_id(session_id)
 
-    # Scenario 1: The user clicked a button.
+    # Scenario 1: User clicked a button
     if user_message.startswith("__CLICKED__"):
         clicked_value = user_message.split(":", 1)[1]
-        
         current_node_data = wizard_service.get_node_data(current_node_id)
         
         answer_key = current_node_data.get("save_as") if current_node_data else None
         if answer_key:
             wizard_service.save_answer(session_id, answer_key, clicked_value)
 
-        next_node_id = None
+        next_node_id = "get_contact_info" # Default to final step
         if current_node_data and "buttons" in current_node_data:
             for button in current_node_data["buttons"]:
                 if button.get("value") == clicked_value:
                     next_node_id = button.get("next_node")
                     break
         
-        if next_node_id:
-            next_node_data = wizard_service.get_node_data(next_node_id)
-            wizard_service.advance_to_node(session_id, next_node_id)
-            return jsonify(next_node_data)
-        else:
-            final_node = wizard_service.get_node_data("get_contact_info")
-            wizard_service.advance_to_node(session_id, "get_contact_info")
-            return jsonify(final_node)
+        next_node_data = wizard_service.get_node_data(next_node_id)
+        wizard_service.advance_to_node(session_id, next_node_id)
+        return jsonify(next_node_data)
 
-    # Scenario 2: This is the user's very first message in a session.
+    # Scenario 2: It's the user's first message
     elif current_node_id == "start":
-        logger.info(f"New conversation for session {session_id}. Starting wizard.")
         start_node_data = wizard_service.get_node_data("start")
         return jsonify(start_node_data)
 
-    # Scenario 3: It's a regular free-text message. Use the LLM.
+    # Scenario 3: It's a free-text answer (final submission)
     else:
-        logger.info(f"Handling free-text input for session {session_id}.")
         try:
-            data = ChatRequest.model_validate(req_data)
+            current_data = ChatRequest.model_validate(req_data)
         except ValidationError as e:
             return jsonify({"error": e.errors()}), 422
 
-        if data.zip_code and not is_valid_zip(data.zip_code):
-            return jsonify({
-                "reply": f"I'm sorry, we do not currently serve the {data.zip_code} area."
-            }), 200
+        # Gather ALL answers from the Redis session
+        session_answers = wizard_service.get_all_answers(session_id)
         
-        current_node_data = wizard_service.get_node_data(current_node_id)
-        answer_key = current_node_data.get("save_as") if current_node_data else None
-        if answer_key:
-             wizard_service.save_answer(session_id, answer_key, data.message)
-
-        prompt_context = f"User message: '{data.message}'"
-        reply = generate_gpt_reply(prompt_context)
-
-        try:
-            lead_data = data.model_dump()
-            lead_data['raw_message'] = data.message
-            lead_dao.save_lead(lead_data)
-            logger.info("Chat handled and lead saved.")
-        except Exception as e:
-            logger.error(f"An exception occurred during lead saving: {e}")
-
-        return jsonify({"reply": reply})
+        # Combine session answers with data from the final message
+        final_lead_data = {
+            **session_answers, 
+            **current_data.model_dump(exclude_none=True)
+        }
+        final_lead_data['raw_message'] = current_data.message
+        final_lead_data['session_id'] = session_id
+        
+        # Save the complete lead to the database (which also triggers n8n)
+        lead_dao.save_lead(final_lead_data)
+        
+        # For the final reply, we can just send a simple confirmation
+        return jsonify({"reply": "Thank you! An agent will be in touch with your quote shortly."})
 
 
 @bp.route('/healthz', methods=['GET'])

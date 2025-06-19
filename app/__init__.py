@@ -6,8 +6,7 @@ from flask import Flask, jsonify, session
 from dotenv import load_dotenv
 from loguru import logger
 
-# Import functions/blueprints that will be initialized/registered
-from .extensions import configure_logging, init_db
+from .extensions import configure_logging
 from .routes import bp as routes_bp
 from .tasks import redis_conn
 from .services.wizard_service import load_flow
@@ -18,18 +17,18 @@ def create_app(test_config=None):
     load_dotenv()
 
     # --- Configuration ---
-    # Load default config, then override with environment variables, then test_config
-    app.config.from_mapping(SECRET_KEY='dev', TESTING=False)
-    app.config.update({
-        'WIDGET_API_KEY': os.getenv('WIDGET_API_KEY'),
-        'DATABASE_URL': os.getenv('DATABASE_URL'),
-        'REDIS_URL': os.getenv('REDIS_URL')
-    })
+    app.config.from_mapping(SECRET_KEY=os.getenv('SECRET_KEY', 'dev'), TESTING=False)
     if test_config:
-        app.config.from_mapping(test_config)
-    # --- End Configuration ---
+        app.config.update(test_config)
+    else:
+        app.config.update({
+            'WIDGET_API_KEY': os.getenv('WIDGET_API_KEY'),
+            'DATABASE_URL': os.getenv('DATABASE_URL'),
+            'REDIS_URL': os.getenv('REDIS_URL'),
+            'N8N_WEBHOOK_URL': os.getenv('N8N_WEBHOOK_URL')
+        })
 
-    # --- Defer initialization until app context is available ---
+    # Defer initialization until the app context is available
     with app.app_context():
         load_flow(app)
         load_zips(app)
@@ -38,13 +37,9 @@ def create_app(test_config=None):
     def init_session():
         if not session.get('uid'):
             session['uid'] = secrets.token_urlsafe(16)
-            if redis_conn: # redis_conn is now the safe fake or real connection
-                session_key = f"ctx:{session['uid']}"
-                redis_conn.hset(session_key, mapping={
-                    "created": datetime.now(timezone.utc).isoformat(),
-                    "current_node": "start"
-                })
-                redis_conn.expire(session_key, 60 * 60 * 24 * 7)
+            if redis_conn:
+                redis_conn.hset(f"ctx:{session['uid']}", "current_node", "start")
+                redis_conn.expire(f"ctx:{session['uid']}", 60 * 60 * 24 * 7)
 
     app.register_blueprint(routes_bp)
     configure_logging(app)

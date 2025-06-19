@@ -9,11 +9,12 @@ from flask import Flask
 APPROVED_ZIPS_SET = set()
 
 def load_zips(app: Flask):
-    """Loads ZIP codes from CSV using the app's root path. Must be called once on startup."""
+    """Loads ZIP codes from CSV using a reliable path from the app's root."""
     global APPROVED_ZIPS_SET
     try:
-        # Build a reliable, absolute path to the data file
-        csv_path = os.path.join(app.root_path, '..', 'data', 'zips.csv')
+        # This corrected path is simpler and more reliable inside Docker.
+        csv_path = os.path.join(app.root_path, 'data', 'zips.csv')
+        
         df = pd.read_csv(csv_path, dtype={'zip_code': str})
         APPROVED_ZIPS_SET = set(df['zip_code'])
         logger.info(f"Successfully loaded {len(APPROVED_ZIPS_SET)} ZIP codes from local CSV.")
