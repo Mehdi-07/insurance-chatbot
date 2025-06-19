@@ -16,7 +16,17 @@ from .services.zip_validator import load_zips
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True, static_folder=None)
 
-    CORS(app)
+    CORS(app, resources={
+        r"/chat": {
+            "origins": [
+                "http://localhost:5173", # Your local dev server
+                "https://tpi-insurance.com" # Your future production domain
+            ],
+            "methods": ["POST", "OPTIONS"],
+            "allow_headers": ["Content-Type", "X-API-Key"]
+        }
+    })
+
     load_dotenv()
 
     # --- Configuration ---
