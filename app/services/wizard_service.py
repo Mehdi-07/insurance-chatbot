@@ -13,7 +13,7 @@ def load_flow(app: Flask):
     global FLOW_DEFINITION
     try:
         # Build a reliable, absolute path to the data file
-        flow_path = os.path.join(app.root_path, '..', 'flows', 'premium.json')
+        flow_path = os.path.join(app.root_path, 'flows', 'premium.json')
         with open(flow_path, 'r') as f:
             FLOW_DEFINITION = json.load(f)
         logger.info("Successfully loaded premium.json conversation flow.")
