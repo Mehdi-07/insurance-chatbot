@@ -1,4 +1,3 @@
-# In app/services/zip_validator.py
 import os
 import pandas as pd
 import requests
@@ -12,7 +11,6 @@ def load_zips(app: Flask):
     """Loads ZIP codes from CSV using a reliable path from the app's root."""
     global APPROVED_ZIPS_SET
     try:
-        # This corrected path is simpler and more reliable inside Docker.
         csv_path = os.path.join(app.root_path, 'data', 'zips.csv')
         
         df = pd.read_csv(csv_path, dtype={'zip_code': str})

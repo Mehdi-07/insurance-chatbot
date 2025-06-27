@@ -1,4 +1,3 @@
-# In app/adapters/lead_dao.py
 import os
 import psycopg2
 import requests
@@ -16,7 +15,7 @@ def init_db(app: Flask):
     try:
         conn = psycopg2.connect(conn_url)
         with conn.cursor() as cursor:
-            # This schema is now up-to-date with all the fields from your plan
+            #schema
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS leads (
                     id SERIAL PRIMARY KEY,

@@ -29,9 +29,6 @@ def generate_gpt_reply(message: str) -> str:
             "Content-Type": "application/json"
         }
         payload = {
-            # Ensure this model name is correct and available for Groq.
-            # 'llama-4-scout-17b-16e-instruct' might be an internal or custom model.
-            # Common Groq models are like 'llama3-8b-8192', 'llama3-70b-8192', etc.
             "model": "meta-llama/llama-4-scout-17b-16e-instruct",
             "messages": [
                 {

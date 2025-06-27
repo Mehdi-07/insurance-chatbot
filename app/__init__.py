@@ -19,8 +19,8 @@ def create_app(test_config=None):
     CORS(app, resources={
         r"/chat": {
             "origins": [
-                "http://localhost:5173", # Your local dev server
-                "https://tpi-insurance.com" # Your future production domain
+                "http://localhost:5173", # local dev server
+                "https://tpi-insurance.com" # production domain
             ],
             "methods": ["POST", "OPTIONS"],
             "allow_headers": ["Content-Type", "X-API-Key"]

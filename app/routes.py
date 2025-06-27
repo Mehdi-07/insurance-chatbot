@@ -4,7 +4,6 @@ from flask import Blueprint, request, jsonify, render_template, session
 from loguru import logger
 from pydantic import ValidationError
 
-# All imports are now absolute and based on your confirmed project structure
 from app.middleware import require_api_key, rate_limiter
 from app.models import ChatRequest
 from app.adapters import lead_dao
@@ -12,7 +11,6 @@ from app.adapters.llm_groq import generate_gpt_reply
 from app.services.zip_validator import is_valid_zip
 from app.services import wizard_service
 
-# This line creates the 'bp' object that your __init__.py needs to import
 bp = Blueprint('routes', __name__)
 
 
